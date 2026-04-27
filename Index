@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Meal Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#FAFAF7; --surface:#FFFFFF; --border:#E8E4DC; --text:#1C1A17; --muted:#9A9488;
+  --accent:#2D6A4F; --accent2:#52B788; --danger:#C0392B; --warn:#D4A44C;
+  --tag-bg:#EEF7F2; --radius:12px; --header:64px; --nav:60px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;font-weight:300;display:flex;flex-direction:column;}
+
+/* ── HEADER ── */
+header{
+  background:var(--accent);height:var(--header);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;flex-shrink:0;
+  box-shadow:0 2px 12px rgba(45,106,79,0.3);
+  position:relative;z-index:50;
+}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-icon{font-size:1.3rem;}
+.logo h1{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:400;color:white;}
+#status-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:20px;padding:5px 11px;font-size:0.7rem;color:rgba(255,255,255,0.85);}
+#status-pill .pip{width:6px;height:6px;border-radius:50%;background:#aaa;transition:background 0.3s;}
+#status-pill.connected .pip{background:#52B788;}
+#status-pill.error .pip{background:#e74c3c;}
+
+/* ── TAB NAV ── */
+nav{
+  background:var(--surface);height:var(--nav);
+  display:flex;border-bottom:1px solid var(--border);
+  flex-shrink:0;position:relative;z-index:40;
+}
+.nav-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;border:none;background:transparent;cursor:pointer;
+  font-family:'Jost',sans-serif;font-size:0.68rem;font-weight:500;
+  color:var(--muted);letter-spacing:0.5px;text-transform:uppercase;
+  border-bottom:3px solid transparent;transition:all 0.2s;
+  padding-bottom:2px;
+}
+.nav-tab .nav-icon{font-size:1.2rem;}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+/* ── PAGES ── */
+.page{flex:1;overflow-y:auto;display:none;-webkit-overflow-scrolling:touch;}
+.page.active{display:block;}
+
+/* ── PLAN PAGE ── */
+.plan-hero{
+  background:linear-gradient(135deg,#1B4332,#2D6A4F);
+  padding:28px 20px 24px;position:relative;overflow:hidden;
+}
+.plan-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(82,183,136,0.12);pointer-events:none;}
+.hero-inner{position:relative;z-index:1;}
+.hero-eyebrow{font-size:0.65rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent2);margin-bottom:6px;font-weight:500;}
+.hero-title{font-family:'Playfair Display',serif;font-size:1.7rem;font-weight:400;color:white;line-height:1.15;margin-bottom:6px;}
+.hero-title em{font-style:italic;color:var(--accent2);}
+.hero-sub{color:rgba(255,255,255,0.55);font-size:0.8rem;}
+
+.plan-controls{padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.plan-controls-label{font-size:0.78rem;color:var(--muted);}
+.plan-controls-label strong{color:var(--text);display:block;font-size:0.9rem;font-weight:500;}
+.btn-regen{display:flex;align-items:center;gap:7px;background:var(--accent);color:white;border:none;border-radius:8px;padding:10px 18px;font-family:'Jost',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-regen:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-regen .si{display:inline-block;transition:transform 0.5s;}
+.btn-regen:active .si{transform:rotate(180deg);}
+
+/* Meal cards */
+.meals-list{padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
+.meal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:slideUp 0.35s ease both;}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+.meal-card:nth-child(1){animation-delay:0.04s;} .meal-card:nth-child(2){animation-delay:0.09s;} .meal-card:nth-child(3){animation-delay:0.14s;} .meal-card:nth-child(4){animation-delay:0.19s;} .meal-card:nth-child(5){animation-delay:0.24s;}
+.card-top{background:var(--accent);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.card-top-left .card-day{font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:3px;}
+.card-top-left .card-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:white;font-weight:400;}
+.card-emoji{font-size:1.5rem;}
+.card-meta{display:flex;border-bottom:1px solid var(--border);}
+.meta-item{flex:1;padding:8px 12px;font-size:0.72rem;color:var(--muted);border-right:1px solid var(--border);display:flex;align-items:center;gap:4px;}
+.meta-item:last-child{border-right:none;}
+.meta-item strong{color:var(--text);font-weight:500;}
+.card-ings{padding:12px 16px;}
+.ings-label{font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:500;}
+.ings-wrap{display:flex;flex-wrap:wrap;gap:5px;}
+.ing-tag{background:var(--tag-bg);color:var(--accent);border-radius:5px;padding:3px 8px;font-size:0.72rem;border:1px solid rgba(45,106,79,0.1);}
+
+/* Shopping list */
+.section-head{padding:20px 20px 12px;display:flex;align-items:center;justify-content:space-between;}
+.section-head h2{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:400;}
+.section-head h2 span{color:var(--accent);font-style:italic;}
+.btn-sm{background:transparent;border:1px solid var(--border);border-radius:7px;padding:6px 12px;font-family:'Jost',sans-serif;font-size:0.75rem;color:var(--muted);cursor:pointer;}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent);}
+.shop-cats{padding:0 20px 32px;display:flex;flex-direction:column;gap:10px;}
+.shop-cat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.shop-cat-head{background:#F4F9F6;padding:10px 14px;font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);font-weight:600;border-bottom:1px solid var(--border);}
+.shop-items{list-style:none;}
+.shop-item{display:flex;align-items:center;gap:10px;padding:10px 14px;font-size:0.85rem;cursor:pointer;border-bottom:1px solid var(--border);user-select:none;transition:background 0.1s;}
+.shop-item:last-child{border-bottom:none;}
+.shop-item:active{background:#f5f5f5;}
+.shop-item.ticked{color:var(--muted);text-decoration:line-through;}
+.shop-cb{width:20px;height:20px;border:1.5px solid var(--border);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:white;transition:all 0.15s;}
+.shop-item.ticked .shop-cb{background:var(--accent);border-color:var(--accent);}
+
+/* Loading / error */
+.center-state{text-align:center;padding:80px 32px;}
+.loader{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.center-state h3{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:400;margin-bottom:8px;}
+.center-state p{color:var(--muted);font-size:0.82rem;line-height:1.7;max-width:320px;margin:0 auto 20px;}
+.center-state.error h3{color:var(--danger);}
+
+/* ── MANAGE PAGE ── */
+.manage-header{padding:20px 20px 0;}
+.manage-header h2{font-family:'Playfair Display',serif;font-size:1.4rem;font-weight:400;margin-bottom:4px;}
+.manage-header p{font-size:0.8rem;color:var(--muted);}
+
+/* Search bar */
+.search-bar{margin:16px 20px 0;position:relative;}
+.search-bar input{width:100%;padding:11px 16px 11px 40px;border:1px solid var(--border);border-radius:10px;font-family:'Jost',sans-serif;font-size:0.88rem;background:var(--surface);color:var(--text);outline:none;transition:border-color 0.2s;}
+.search-bar input:focus{border-color:var(--accent);}
+.search-bar::before{content:'🔍';position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:0.85rem;}
+
+/* Add button */
+.add-fab{
+  position:fixed;bottom:calc(var(--nav) + 16px);right:16px;
+  width:52px;height:52px;border-radius:50%;
+  background:var(--accent);color:white;border:none;
+  font-size:1.5rem;cursor:pointer;z-index:60;
+  box-shadow:0 4px 16px rgba(45,106,79,0.4);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.2s,box-shadow 0.2s;
+}
+.add-fab:active{transform:scale(0.94);}
+
+/* Meals list in manage tab */
+.meals-manage-list{padding:12px 20px 100px;display:flex;flex-direction:column;gap:8px;}
+.meal-row{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  display:flex;align-items:center;padding:12px 14px;gap:12px;
+  animation:slideUp 0.3s ease both;
+}
+.meal-row-info{flex:1;min-width:0;}
+.meal-row-name{font-weight:500;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.meal-row-meta{font-size:0.73rem;color:var(--muted);margin-top:2px;}
+.meal-row-badge{flex-shrink:0;font-size:1.1rem;}
+.meal-row-actions{display:flex;gap:6px;flex-shrink:0;}
+.btn-icon{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all 0.15s;}
+.btn-icon.edit:active{background:var(--tag-bg);border-color:var(--accent);}
+.btn-icon.del:active{background:#fef2f2;border-color:#fecaca;}
+
+/* Empty manage state */
+.empty-manage{text-align:center;padding:60px 32px;color:var(--muted);}
+.empty-manage .e-icon{font-size:2.5rem;margin-bottom:12px;}
+.empty-manage p{font-size:0.82rem;line-height:1.7;}
+
+/* ── DRAWER / MODAL for Add/Edit ── */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:200;display:none;align-items:flex-end;}
+.drawer-overlay.open{display:flex;animation:fadeBg 0.25s ease;}
+@keyframes fadeBg{from{background:rgba(0,0,0,0);}to{background:rgba(0,0,0,0.45);}}
+.drawer{
+  background:var(--surface);border-radius:20px 20px 0 0;
+  width:100%;max-height:90vh;overflow-y:auto;
+  padding:0 0 32px;
+  animation:slideDrawer 0.3s ease;
+}
+@keyframes slideDrawer{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.drawer-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;}
+.drawer-head{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.drawer-head h3{font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:400;}
+.btn-close{background:transparent;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:4px;}
+.drawer-body{padding:20px;}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:6px;}
+.field input,.field textarea,.field select{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:9px;
+  font-family:'Jost',sans-serif;font-size:0.9rem;color:var(--text);
+  background:var(--bg);outline:none;transition:border-color 0.2s;
+  -webkit-appearance:none;
+}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--accent);background:white;}
+.field textarea{resize:none;height:72px;line-height:1.5;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.ing-hint{font-size:0.72rem;color:var(--muted);margin-top:5px;}
+.drawer-actions{padding:0 20px;display:flex;gap:10px;}
+.btn-save{flex:1;background:var(--accent);color:white;border:none;border-radius:10px;padding:14px;font-family:'Jost',sans-serif;font-size:0.92rem;font-weight:600;cursor:pointer;transition:background 0.2s;}
+.btn-save:active{background:#1B4332;}
+.btn-cancel{background:transparent;border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-family:'Jost',sans-serif;font-size:0.92rem;color:var(--muted);cursor:pointer;}
+
+/* Delete confirm */
+.delete-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:none;align-items:center;justify-content:center;padding:24px;}
+.delete-overlay.open{display:flex;}
+.delete-card{background:white;border-radius:16px;padding:28px 24px;max-width:320px;width:100%;text-align:center;}
+.delete-card h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:8px;}
+.delete-card p{font-size:0.82rem;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.delete-btns{display:flex;gap:10px;}
+.btn-del-confirm{flex:1;background:var(--danger);color:white;border:none;border-radius:9px;padding:12px;font-family:'Jost',sans-serif;font-size:0.88rem;font-weight:600;cursor:pointer;}
+.btn-del-cancel{flex:1;background:transparent;border:1px solid var(--border);border-radius:9px;padding:12px;font-family:'Jost',sans-serif;font-size:0.88rem;color:var(--muted);cursor:pointer;}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:calc(var(--nav) + 16px);left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--text);color:white;border-radius:8px;padding:10px 20px;
+  font-size:0.82rem;font-weight:500;z-index:400;
+  opacity:0;transition:all 0.3s ease;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{background:var(--accent);}
+.toast.err{background:var(--danger);}
+
+/* Saving spinner overlay on drawer */
+.saving-overlay{position:absolute;inset:0;background:rgba(255,255,255,0.75);display:none;align-items:center;justify-content:center;border-radius:20px 20px 0 0;z-index:10;}
+.saving-overlay.show{display:flex;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">🍽️</div>
+    <h1>Meal Planner</h1>
+  </div>
+  <div id="status-pill"><div class="pip"></div><span id="status-text">Connecting…</span></div>
+</header>
+
+<!-- Tab Nav -->
+<nav>
+  <button class="nav-tab active" id="tab-plan" onclick="switchTab('plan')">
+    <span class="nav-icon">📅</span>This Week
+  </button>
+  <button class="nav-tab" id="tab-manage" onclick="switchTab('manage')">
+    <span class="nav-icon">✏️</span>My Meals
+  </button>
+</nav>
+
+<!-- ── PLAN PAGE ── -->
+<div class="page active" id="page-plan">
+
+  <div class="plan-hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">✦ Your weekly favourites</div>
+      <div class="hero-title">This Week's <em>Dinner Plan</em></div>
+      <div class="hero-sub">5 balanced meals · Mon–Fri · Randomised from your collection</div>
+    </div>
+  </div>
+
+  <div class="plan-controls">
+    <div class="plan-controls-label">
+      <strong id="pool-label">Loading…</strong>
+      Randomly balanced by protein
+    </div>
+    <button class="btn-regen" id="btn-regen" onclick="pickAndRender()" disabled>
+      <span class="si">↻</span> New Week
+    </button>
+  </div>
+
+  <!-- Plan loading -->
+  <div class="center-state" id="plan-loading">
+    <div class="loader"></div>
+    <h3>Loading meals…</h3>
+    <p>Fetching from your collection</p>
+  </div>
+
+  <!-- Plan error -->
+  <div class="center-state error" id="plan-error" style="display:none">
+    <h3>⚠️ Couldn't load</h3>
+    <p id="plan-error-msg">Check your Supabase table is set up correctly.</p>
+  </div>
+
+  <!-- Meal cards -->
+  <div class="meals-list" id="meals-list" style="display:none"></div>
+
+  <!-- Shopping -->
+  <div id="shopping-section" style="display:none">
+    <div class="section-head">
+      <h2>Shopping <span>List</span></h2>
+      <button class="btn-sm" onclick="clearTicks()">Clear ticks</button>
+    </div>
+    <div class="shop-cats" id="shop-cats"></div>
+
+    <div style="padding:0 20px 8px">
+      <button class="btn-sm" style="width:100%;padding:12px" onclick="window.print()">🖨️ Print shopping list</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MANAGE PAGE ── -->
+<div class="page" id="page-manage">
+  <div class="manage-header">
+    <h2>My <span style="color:var(--accent);font-style:italic;font-family:'Playfair Display',serif">Meals</span></h2>
+    <p id="manage-count">Loading your collection…</p>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Search meals…" oninput="filterMeals()" autocomplete="off">
+  </div>
+
+  <div id="manage-loading" class="center-state" style="padding:60px 32px">
+    <div class="loader"></div>
+    <h3>Loading…</h3>
+  </div>
+
+  <div class="meals-manage-list" id="meals-manage-list" style="display:none"></div>
+  <div class="empty-manage" id="manage-empty" style="display:none">
+    <div class="e-icon">🍽️</div>
+    <p>No meals found.<br>Tap <strong>+</strong> to add your first meal!</p>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="add-fab" onclick="openDrawer(null)" title="Add meal">＋</button>
+
+<!-- ── ADD/EDIT DRAWER ── -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="overlayClick(event)">
+  <div class="drawer" id="drawer">
+    <div class="saving-overlay" id="saving-overlay"><div class="loader"></div></div>
+    <div class="drawer-handle"></div>
+    <div class="drawer-head">
+      <h3 id="drawer-title">Add Meal</h3>
+      <button class="btn-close" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <input type="hidden" id="edit-id">
+      <div class="field">
+        <label>Meal Name *</label>
+        <input type="text" id="f-name" placeholder="e.g. Chicken Tikka Masala" maxlength="100">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Main Ingredient</label>
+          <select id="f-main">
+            <option value="">Select…</option>
+            <option>Chicken</option><option>Beef</option><option>Pork</option>
+            <option>Lamb</option><option>Fish</option><option>Seafood</option>
+            <option>Veggie</option><option>Pasta</option><option>Eggs</option><option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cook Time</label>
+          <input type="text" id="f-time" placeholder="e.g. 30 mins" maxlength="20">
+        </div>
+      </div>
+      <div class="field">
+        <label>Serves</label>
+        <input type="text" id="f-serves" placeholder="e.g. 4" maxlength="10">
+      </div>
+      <div class="field">
+        <label>Ingredients</label>
+        <textarea id="f-ings" placeholder="Chicken breast, garlic, onion, tinned tomatoes…"></textarea>
+        <div class="ing-hint">Separate with commas — used to build your shopping list</div>
+      </div>
+      <div class="field">
+        <label>Notes (optional)</label>
+        <textarea id="f-notes" placeholder="Any tips, variations or serving suggestions…" style="height:56px"></textarea>
+      </div>
+    </div>
+    <div class="drawer-actions">
+      <button class="btn-cancel" onclick="closeDrawer()">Cancel</button>
+      <button class="btn-save" onclick="saveMeal()">Save Meal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="delete-overlay" id="delete-overlay">
+  <div class="delete-card">
+    <h3>Delete meal?</h3>
+    <p id="delete-name-label">This will permanently remove this meal from your collection.</p>
+    <div class="delete-btns">
+      <button class="btn-del-cancel" onclick="closeDelete()">Cancel</button>
+      <button class="btn-del-confirm" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──
+const SUPA_URL = 'https://ctrbbvlzisgwcncyjoir.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cmJidmx6aXNnd2NuY3lqb2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyOTg5NjgsImV4cCI6MjA5Mjg3NDk2OH0.FVxse4AswFPAwtPalLA-QWLtyE0JlBp4cxNIGU8uTGQ';
+const TABLE    = 'meals';
+const DAYS     = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+const HEADERS = {
+  'apikey': SUPA_KEY,
+  'Authorization': `Bearer ${SUPA_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+// ── STATE ──
+let allMeals   = [];
+let filteredMeals = [];
+let deleteId   = null;
+let currentTab = 'plan';
+
+// ── SUPABASE HELPERS ──
+async function sbFetch(path, opts={}) {
+  const res = await fetch(`${SUPA_URL}/rest/v1/${path}`, { headers: HEADERS, ...opts });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${err}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function loadMeals() {
+  return sbFetch(`${TABLE}?select=*&order=meal_name.asc`);
+}
+
+async function insertMeal(data) {
+  return sbFetch(TABLE, { method:'POST', body: JSON.stringify(data) });
+}
+
+async function updateMeal(id, data) {
+  return sbFetch(`${TABLE}?id=eq.${id}`, { method:'PATCH', body: JSON.stringify(data) });
+}
+
+async function deleteMeal(id) {
+  return sbFetch(`${TABLE}?id=eq.${id}`, { method:'DELETE' });
+}
+
+// ── EMOJI ──
+function mealEmoji(v) {
+  v = (v||'').toLowerCase();
+  if(v.includes('chicken')) return '🍗';
+  if(v.includes('beef')||v.includes('steak')) return '🥩';
+  if(v.includes('pork')||v.includes('bacon')) return '🥓';
+  if(v.includes('lamb')) return '🐑';
+  if(v.includes('fish')||v.includes('salmon')||v.includes('cod')||v.includes('tuna')) return '🐟';
+  if(v.includes('prawn')||v.includes('seafood')||v.includes('shrimp')) return '🦐';
+  if(v.includes('veg')||v.includes('plant')||v.includes('tofu')) return '🥦';
+  if(v.includes('pasta')||v.includes('noodle')) return '🍝';
+  if(v.includes('egg')) return '🍳';
+  return '🍴';
+}
+
+// ── SHUFFLE & BALANCE ──
+function shuffle(a) {
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function pickBalanced(meals) {
+  if(meals.length <= 5) return shuffle([...meals]);
+  const groups = {};
+  meals.forEach(m => {
+    const k = (m.main_ingredient||'Other').trim();
+    if(!groups[k]) groups[k] = [];
+    groups[k].push(m);
+  });
+  Object.keys(groups).forEach(k => groups[k] = shuffle(groups[k]));
+  const keys = shuffle(Object.keys(groups));
+  const picked = [], used = new Set();
+  let round = 0;
+  while(picked.length < 5 && round < keys.length * 20) {
+    const k = keys[round % keys.length];
+    const pool = (groups[k]||[]).filter(m => !used.has(m.id));
+    if(pool.length > 0){ picked.push(pool[0]); used.add(pool[0].id); }
+    round++;
+  }
+  // fill if not enough variety
+  if(picked.length < 5) {
+    shuffle(meals.filter(m => !used.has(m.id))).forEach(m => { if(picked.length < 5) picked.push(m); });
+  }
+  return shuffle(picked);
+}
+
+// ── RENDER PLAN ──
+function renderPlan(selected) {
+  const list = document.getElementById('meals-list');
+  list.innerHTML = '';
+  selected.forEach((m, i) => {
+    const name  = m.meal_name || 'Untitled';
+    const mi    = m.main_ingredient || '';
+    const ct    = m.cook_time || '';
+    const sv    = m.serves || '';
+    const raw   = m.ingredients || '';
+    const ings  = raw.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+    const tags  = ings.length ? ings.map(x=>`<span class="ing-tag">${x}</span>`).join('') : '<span class="ing-tag">See recipe</span>';
+    const meta  = [
+      ct ? `<div class="meta-item">⏱ <strong>${ct}</strong></div>` : '',
+      sv ? `<div class="meta-item">👤 <strong>${sv}</strong></div>` : '',
+      mi ? `<div class="meta-item">🏷 <strong>${mi}</strong></div>` : ''
+    ].filter(Boolean).join('');
+
+    list.innerHTML += `<div class="meal-card">
+      <div class="card-top">
+        <div class="card-top-left"><div class="card-day">${DAYS[i]}</div><div class="card-name">${name}</div></div>
+        <div class="card-emoji">${mealEmoji(mi)}</div>
+      </div>
+      ${meta ? `<div class="card-meta">${meta}</div>` : ''}
+      <div class="card-ings"><div class="ings-label">Ingredients</div><div class="ings-wrap">${tags}</div></div>
+    </div>`;
+  });
+  list.style.display = 'flex';
+  renderShopping(selected);
+}
+
+// ── RENDER SHOPPING ──
+function renderShopping(selected) {
+  const catDefs = [
+    { name:'🥩 Meat & Fish',    words:['chicken','beef','pork','lamb','salmon','cod','tuna','prawn','fish','mince','steak','bacon','sausage','seafood','shrimp'] },
+    { name:'🥦 Fruit & Veg',    words:['onion','garlic','tomato','pepper','courgette','spinach','lettuce','carrot','ginger','mushroom','potato','asparagus','lemon','lime','apple','broccoli','pea','spring onion','basil','mint','coriander','dill','sage','celery','leek','avocado','chilli','cucumber','kale','cabbage'] },
+    { name:'🥛 Dairy & Eggs',   words:['cheese','cream','butter','parmesan','sour cream','yogurt','milk','egg','cheddar','mozzarella','feta','ricotta'] },
+    { name:'🥫 Tins & Jars',    words:['tinned','tin ','chickpea','coconut milk','stock','passata','chopped tomato','lentil','kidney bean','baked bean'] },
+    { name:'🌾 Grains & Bread', words:['pasta','rice','noodle','flour','bread','flatbread','tortilla','taco','bun','crouton','arborio','quinoa','couscous','oat'] },
+    { name:'🧂 Oils & Spices',  words:['oil','soy','sesame','ketchup','mustard','dressing','paste','seasoning','cumin','paprika','turmeric','spice','sugar','salt','vinegar','wine','beer','stock cube'] },
+  ];
+
+  const all = new Set();
+  selected.forEach(m => {
+    (m.ingredients||'').split(/[,;|]/).map(s=>s.trim()).filter(Boolean).forEach(i => all.add(i));
+  });
+
+  const buckets = {};
+  catDefs.forEach(c => buckets[c.name] = []);
+  buckets['🛍 Other'] = [];
+
+  all.forEach(ing => {
+    const l = ing.toLowerCase();
+    let placed = false;
+    for(const c of catDefs) {
+      if(c.words.some(w => l.includes(w))) { buckets[c.name].push(ing); placed = true; break; }
+    }
+    if(!placed) buckets['🛍 Other'].push(ing);
+  });
+
+  const container = document.getElementById('shop-cats');
+  container.innerHTML = '';
+  Object.entries(buckets).forEach(([cat, items]) => {
+    if(!items.length) return;
+    const div = document.createElement('div');
+    div.className = 'shop-cat';
+    div.innerHTML = `<div class="shop-cat-head">${cat} <span style="color:var(--muted);font-weight:300;text-transform:none;letter-spacing:0">(${items.length})</span></div>
+      <ul class="shop-items">${items.map(it=>`<li class="shop-item" onclick="tick(this)"><div class="shop-cb"></div><span>${it}</span></li>`).join('')}</ul>`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('shopping-section').style.display = 'block';
+}
+
+function tick(el) {
+  el.classList.toggle('ticked');
+  el.querySelector('.shop-cb').textContent = el.classList.contains('ticked') ? '✓' : '';
+}
+function clearTicks() {
+  document.querySelectorAll('.shop-item.ticked').forEach(el => { el.classList.remove('ticked'); el.querySelector('.shop-cb').textContent = ''; });
+}
+
+// ── PICK & RENDER ──
+function pickAndRender() {
+  if(!allMeals.length) return;
+  const sel = pickBalanced(allMeals);
+  document.getElementById('plan-loading').style.display = 'none';
+  document.getElementById('plan-error').style.display   = 'none';
+  renderPlan(sel);
+}
+
+// ── RENDER MANAGE LIST ──
+function renderManageList(meals) {
+  const list = document.getElementById('meals-manage-list');
+  const empty = document.getElementById('manage-empty');
+  list.innerHTML = '';
+
+  if(!meals.length) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.style.display  = 'flex';
+
+  meals.forEach((m, i) => {
+    const name = m.meal_name || 'Untitled';
+    const mi   = m.main_ingredient || '';
+    const ct   = m.cook_time || '';
+    const sv   = m.serves || '';
+    const meta = [mi, ct ? `⏱ ${ct}` : '', sv ? `👤 ${sv}` : ''].filter(Boolean).join(' · ');
+
+    const row = document.createElement('div');
+    row.className = 'meal-row';
+    row.style.animationDelay = `${i * 0.03}s`;
+    row.innerHTML = `
+      <div class="meal-row-badge">${mealEmoji(mi)}</div>
+      <div class="meal-row-info">
+        <div class="meal-row-name">${name}</div>
+        <div class="meal-row-meta">${meta || 'No details added'}</div>
+      </div>
+      <div class="meal-row-actions">
+        <button class="btn-icon edit" onclick="openDrawer(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="Edit">✏️</button>
+        <button class="btn-icon del" onclick="openDelete(${m.id},'${name.replace(/'/g,"\\'")}')">🗑️</button>
+      </div>`;
+    list.appendChild(row);
+  });
+}
+
+function filterMeals() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  filteredMeals = q ? allMeals.filter(m => (m.meal_name||'').toLowerCase().includes(q) || (m.main_ingredient||'').toLowerCase().includes(q)) : [...allMeals];
+  renderManageList(filteredMeals);
+}
+
+// ── STATUS ──
+function setStatus(cls, txt) {
+  const p = document.getElementById('status-pill');
+  p.className = cls;
+  document.getElementById('status-text').textContent = txt;
+}
+
+// ── INIT LOAD ──
+async function init() {
+  setStatus('', 'Connecting…');
+  try {
+    const meals = await loadMeals();
+    allMeals = meals || [];
+    filteredMeals = [...allMeals];
+
+    const count = allMeals.length;
+    setStatus('connected', `${count} meals`);
+    document.getElementById('pool-label').textContent = `${count} meal${count!==1?'s':''} in your collection`;
+    document.getElementById('manage-count').textContent = `${count} meal${count!==1?'s':''} saved`;
+    document.getElementById('manage-loading').style.display = 'none';
+    document.getElementById('btn-regen').disabled = false;
+
+    if(count === 0) {
+      document.getElementById('plan-loading').style.display = 'none';
+      document.getElementById('plan-error').style.display = 'block';
+      document.getElementById('plan-error-msg').textContent = 'No meals yet — go to "My Meals" and add some!';
+    } else {
+      pickAndRender();
+    }
+    renderManageList(filteredMeals);
+
+  } catch(err) {
+    setStatus('error', 'Error');
+    document.getElementById('plan-loading').style.display = 'none';
+    document.getElementById('plan-error').style.display = 'block';
+    document.getElementById('plan-error-msg').textContent = err.message;
+    document.getElementById('manage-loading').style.display = 'none';
+    showToast('Could not connect to database', 'err');
+  }
+}
+
+// ── DRAWER ──
+function openDrawer(meal) {
+  document.getElementById('edit-id').value   = meal ? meal.id : '';
+  document.getElementById('drawer-title').textContent = meal ? 'Edit Meal' : 'Add Meal';
+  document.getElementById('f-name').value    = meal ? (meal.meal_name||'') : '';
+  document.getElementById('f-main').value    = meal ? (meal.main_ingredient||'') : '';
+  document.getElementById('f-time').value    = meal ? (meal.cook_time||'') : '';
+  document.getElementById('f-serves').value  = meal ? (meal.serves||'') : '';
+  document.getElementById('f-ings').value    = meal ? (meal.ingredients||'') : '';
+  document.getElementById('f-notes').value   = meal ? (meal.notes||'') : '';
+  document.getElementById('drawer-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('f-name').focus(), 350);
+}
+
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+
+function overlayClick(e) {
+  if(e.target === document.getElementById('drawer-overlay')) closeDrawer();
+}
+
+async function saveMeal() {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) { showToast('Please enter a meal name', 'err'); document.getElementById('f-name').focus(); return; }
+
+  const id = document.getElementById('edit-id').value;
+  const data = {
+    meal_name:       name,
+    main_ingredient: document.getElementById('f-main').value,
+    cook_time:       document.getElementById('f-time').value.trim(),
+    serves:          document.getElementById('f-serves').value.trim(),
+    ingredients:     document.getElementById('f-ings').value.trim(),
+    notes:           document.getElementById('f-notes').value.trim(),
+  };
+
+  const overlay = document.getElementById('saving-overlay');
+  overlay.classList.add('show');
+
+  try {
+    if(id) {
+      await updateMeal(id, data);
+      showToast('Meal updated ✓', 'success');
+    } else {
+      await insertMeal(data);
+      showToast('Meal added ✓', 'success');
+    }
+    closeDrawer();
+    const meals = await loadMeals();
+    allMeals = meals || [];
+    filteredMeals = [...allMeals];
+    document.getElementById('manage-count').textContent = `${allMeals.length} meals saved`;
+    document.getElementById('pool-label').textContent = `${allMeals.length} meals in your collection`;
+    setStatus('connected', `${allMeals.length} meals`);
+    filterMeals();
+  } catch(err) {
+    showToast('Save failed: ' + err.message, 'err');
+  } finally {
+    overlay.classList.remove('show');
+  }
+}
+
+// ── DELETE ──
+function openDelete(id, name) {
+  deleteId = id;
+  document.getElementById('delete-name-label').textContent = `"${name}" will be permanently removed.`;
+  document.getElementById('delete-overlay').classList.add('open');
+}
+function closeDelete() {
+  deleteId = null;
+  document.getElementById('delete-overlay').classList.remove('open');
+}
+async function confirmDelete() {
+  if(!deleteId) return;
+  try {
+    await deleteMeal(deleteId);
+    closeDelete();
+    showToast('Meal deleted', 'success');
+    const meals = await loadMeals();
+    allMeals = meals || [];
+    filteredMeals = [...allMeals];
+    document.getElementById('manage-count').textContent = `${allMeals.length} meals saved`;
+    document.getElementById('pool-label').textContent = `${allMeals.length} meals in your collection`;
+    setStatus('connected', `${allMeals.length} meals`);
+    filterMeals();
+  } catch(err) {
+    showToast('Delete failed: ' + err.message, 'err');
+    closeDelete();
+  }
+}
+
+// ── TABS ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  document.getElementById(`page-${tab}`).classList.add('active');
+  // Show FAB only on manage tab
+  document.querySelector('.add-fab').style.display = tab === 'manage' ? 'flex' : 'none';
+}
+
+// ── TOAST ──
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── START ──
+document.querySelector('.add-fab').style.display = 'none'; // hidden on plan tab initially
+init();
+</script>
+</body>
+</html>
