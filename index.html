@@ -76,7 +76,7 @@ nav{
 .meals-list{padding:16px 20px;display:flex;flex-direction:column;gap:12px;}
 .meal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;animation:slideUp 0.35s ease both;}
 @keyframes slideUp{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
-.meal-card:nth-child(1){animation-delay:0.04s;} .meal-card:nth-child(2){animation-delay:0.09s;} .meal-card:nth-child(3){animation-delay:0.14s;} .meal-card:nth-child(4){animation-delay:0.19s;} .meal-card:nth-child(5){animation-delay:0.24s;}
+.meal-card:nth-child(1){animation-delay:0.04s;} .meal-card:nth-child(2){animation-delay:0.09s;} .meal-card:nth-child(3){animation-delay:0.14s;} .meal-card:nth-child(4){animation-delay:0.19s;} .meal-card:nth-child(5){animation-delay:0.24s;} .meal-card:nth-child(6){animation-delay:0.29s;} .meal-card:nth-child(7){animation-delay:0.34s;}
 .card-top{background:var(--accent);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
 .card-top-left .card-day{font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:3px;}
 .card-top-left .card-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:white;font-weight:400;}
@@ -490,32 +490,58 @@ function pickBalanced(meals, count) {
 // ── RENDER PLAN ──
 function renderPlan(selected) {
   const list = document.getElementById('meals-list');
-  list.innerHTML = '';
-  selected.forEach((m, i) => {
-    const name  = m.meal_name || 'Untitled';
-    const mi    = m.main_ingredient || '';
-    const ct    = m.cook_time || '';
-    const sv    = m.serves || '';
-    const raw   = m.ingredients || '';
-    const ings  = raw.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
-    const tags  = ings.length ? ings.map(x=>`<span class="ing-tag">${x}</span>`).join('') : '<span class="ing-tag">See recipe</span>';
-    const meta  = [
-      ct ? `<div class="meta-item">⏱ <strong>${ct}</strong></div>` : '',
-      sv ? `<div class="meta-item">👤 <strong>${sv}</strong></div>` : '',
-      mi ? `<div class="meta-item">🏷 <strong>${mi}</strong></div>` : ''
-    ].filter(Boolean).join('');
+  // Fully clear the list
+  while(list.firstChild) list.removeChild(list.firstChild);
 
-    list.innerHTML += `<div class="meal-card">
-      <div class="card-top">
-        <div class="card-top-left"><div class="card-day">${DAYS[i]}</div><div class="card-name">${name}</div></div>
-        <div class="card-emoji">${mealEmoji(mi)}</div>
-      </div>
-      ${meta ? `<div class="card-meta">${meta}</div>` : ''}
-      <div class="card-ings"><div class="ings-label">Ingredients</div><div class="ings-wrap">${tags}</div></div>
-    </div>`;
+  selected.forEach((m, i) => {
+    const name = m.meal_name || 'Untitled';
+    const mi   = m.main_ingredient || '';
+    const ct   = m.cook_time || '';
+    const sv   = m.serves || '';
+    const raw  = m.ingredients || '';
+    const ings = raw.split(/[,;|]/).map(s=>s.trim()).filter(Boolean);
+
+    const card = document.createElement('div');
+    card.className = 'meal-card';
+    card.style.animationDelay = (i * 0.07) + 's';
+
+    // Top bar
+    const top = document.createElement('div');
+    top.className = 'card-top';
+    top.innerHTML = `<div class="card-top-left"><div class="card-day">${DAYS[i] || 'Day ' + (i+1)}</div><div class="card-name">${escHtml(name)}</div></div><div class="card-emoji">${mealEmoji(mi)}</div>`;
+    card.appendChild(top);
+
+    // Meta row
+    const metaParts = [
+      ct ? `<div class="meta-item">⏱ <strong>${escHtml(ct)}</strong></div>` : '',
+      sv ? `<div class="meta-item">👤 <strong>${escHtml(sv)}</strong></div>` : '',
+      mi ? `<div class="meta-item">🏷 <strong>${escHtml(mi)}</strong></div>` : ''
+    ].filter(Boolean);
+    if(metaParts.length) {
+      const meta = document.createElement('div');
+      meta.className = 'card-meta';
+      meta.innerHTML = metaParts.join('');
+      card.appendChild(meta);
+    }
+
+    // Ingredients
+    const ingDiv = document.createElement('div');
+    ingDiv.className = 'card-ings';
+    const tagHTML = ings.length
+      ? ings.map(x => `<span class="ing-tag">${escHtml(x)}</span>`).join('')
+      : '<span class="ing-tag">See recipe</span>';
+    ingDiv.innerHTML = `<div class="ings-label">Ingredients</div><div class="ings-wrap">${tagHTML}</div>`;
+    card.appendChild(ingDiv);
+
+    list.appendChild(card);
   });
+
   list.style.display = 'flex';
   renderShopping(selected);
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── RENDER SHOPPING ──
