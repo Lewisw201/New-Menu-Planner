@@ -797,7 +797,7 @@ async function saveMeal() {
 
 // ── DELETE ──
 function openDelete(id, name) {
-  deleteId = id;
+  deleteId = (id !== undefined && id !== null && id !== '') ? id : null;
   deleteMealName = name;
   document.getElementById('delete-name-label').textContent = `"${name}" will be permanently removed.`;
   document.getElementById('delete-overlay').classList.add('open');
@@ -807,7 +807,7 @@ function closeDelete() {
   document.getElementById('delete-overlay').classList.remove('open');
 }
 async function confirmDelete() {
-  if(!deleteId) return;
+  if(!deleteId && !deleteMealName) return;
   try {
     await deleteMeal(deleteId, deleteMealName);
     closeDelete();
