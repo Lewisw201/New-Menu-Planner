@@ -620,7 +620,7 @@ function pickAndRender() {
 function renderManageList(meals) {
   const list = document.getElementById('meals-manage-list');
   const empty = document.getElementById('manage-empty');
-  list.innerHTML = '';
+  while(list.firstChild) list.removeChild(list.firstChild);
 
   if(!meals.length) {
     list.style.display = 'none';
@@ -640,16 +640,45 @@ function renderManageList(meals) {
     const row = document.createElement('div');
     row.className = 'meal-row';
     row.style.animationDelay = `${i * 0.03}s`;
-    row.innerHTML = `
-      <div class="meal-row-badge">${mealEmoji(mi)}</div>
-      <div class="meal-row-info">
-        <div class="meal-row-name">${name}</div>
-        <div class="meal-row-meta">${meta || 'No details added'}</div>
-      </div>
-      <div class="meal-row-actions">
-        <button class="btn-icon edit" onclick="openDrawer(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="Edit">✏️</button>
-        <button class="btn-icon del" onclick="openDelete(${m.id != null ? m.id : ''},'${name.replace(/'/g,"\\'")}')">🗑️</button>
-      </div>`;
+
+    // Badge
+    const badge = document.createElement('div');
+    badge.className = 'meal-row-badge';
+    badge.textContent = mealEmoji(mi);
+
+    // Info
+    const info = document.createElement('div');
+    info.className = 'meal-row-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'meal-row-name';
+    nameEl.textContent = name;
+    const metaEl = document.createElement('div');
+    metaEl.className = 'meal-row-meta';
+    metaEl.textContent = meta || 'No details added';
+    info.appendChild(nameEl);
+    info.appendChild(metaEl);
+
+    // Actions — use closures, never inline onclick
+    const actions = document.createElement('div');
+    actions.className = 'meal-row-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-icon edit';
+    editBtn.title = 'Edit';
+    editBtn.textContent = '✏️';
+    editBtn.addEventListener('click', (function(meal){ return function(){ openDrawer(meal); }; })(m));
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-icon del';
+    delBtn.textContent = '🗑️';
+    delBtn.addEventListener('click', (function(meal, mealName){ return function(){ openDelete(meal.id, mealName); }; })(m, name));
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    row.appendChild(badge);
+    row.appendChild(info);
+    row.appendChild(actions);
     list.appendChild(row);
   });
 }
