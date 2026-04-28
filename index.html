@@ -411,7 +411,8 @@ const HEADERS = {
 // ── STATE ──
 let allMeals   = [];
 let filteredMeals = [];
-let deleteId   = null;
+let deleteId       = null;
+let deleteMealName = null;
 let currentTab = 'plan';
 
 // ── SUPABASE HELPERS ──
@@ -433,12 +434,18 @@ async function insertMeal(data) {
   return sbFetch(TABLE, { method:'POST', body: JSON.stringify(data) });
 }
 
-async function updateMeal(id, data) {
-  return sbFetch(`${TABLE}?id=eq.${id}`, { method:'PATCH', body: JSON.stringify(data) });
+async function updateMeal(id, mealName, data) {
+  const filter = id != null && id !== '' && id !== 'undefined'
+    ? `id=eq.${id}`
+    : `meal_name=eq.${encodeURIComponent(mealName)}`;
+  return sbFetch(`${TABLE}?${filter}`, { method:'PATCH', body: JSON.stringify(data) });
 }
 
-async function deleteMeal(id) {
-  return sbFetch(`${TABLE}?id=eq.${id}`, { method:'DELETE' });
+async function deleteMeal(id, mealName) {
+  const filter = id != null && id !== '' && id !== 'undefined'
+    ? `id=eq.${id}`
+    : `meal_name=eq.${encodeURIComponent(mealName)}`;
+  return sbFetch(`${TABLE}?${filter}`, { method:'DELETE' });
 }
 
 // ── EMOJI ──
@@ -462,6 +469,10 @@ function shuffle(a) {
   return a;
 }
 
+function mealKey(m) {
+  return m.id != null ? String(m.id) : m.meal_name;
+}
+
 function pickBalanced(meals, count) {
   if(meals.length <= count) return shuffle([...meals]);
   const groups = {};
@@ -476,13 +487,13 @@ function pickBalanced(meals, count) {
   let round = 0;
   while(picked.length < count && round < keys.length * 20) {
     const k = keys[round % keys.length];
-    const pool = (groups[k]||[]).filter(m => !used.has(m.id));
-    if(pool.length > 0){ picked.push(pool[0]); used.add(pool[0].id); }
+    const pool = (groups[k]||[]).filter(m => !used.has(mealKey(m)));
+    if(pool.length > 0){ picked.push(pool[0]); used.add(mealKey(pool[0])); }
     round++;
   }
   // fill remaining if not enough variety
   if(picked.length < count) {
-    shuffle(meals.filter(m => !used.has(m.id))).forEach(m => { if(picked.length < count) picked.push(m); });
+    shuffle(meals.filter(m => !used.has(mealKey(m)))).forEach(m => { if(picked.length < count) picked.push(m); });
   }
   return shuffle(picked);
 }
@@ -637,7 +648,7 @@ function renderManageList(meals) {
       </div>
       <div class="meal-row-actions">
         <button class="btn-icon edit" onclick="openDrawer(${JSON.stringify(m).replace(/"/g,'&quot;')})" title="Edit">✏️</button>
-        <button class="btn-icon del" onclick="openDelete(${m.id},'${name.replace(/'/g,"\\'")}')">🗑️</button>
+        <button class="btn-icon del" onclick="openDelete(${m.id != null ? m.id : ''},'${name.replace(/'/g,"\\'")}')">🗑️</button>
       </div>`;
     list.appendChild(row);
   });
@@ -682,12 +693,13 @@ async function init() {
     renderManageList(filteredMeals);
 
   } catch(err) {
+    console.error('Supabase load error:', err);
     setStatus('error', 'Error');
     document.getElementById('plan-loading').style.display = 'none';
     document.getElementById('plan-error').style.display = 'block';
     document.getElementById('plan-error-msg').textContent = err.message;
     document.getElementById('manage-loading').style.display = 'none';
-    showToast('Could not connect to database', 'err');
+    showToast(err.message, 'err');
   }
 }
 
@@ -731,8 +743,9 @@ async function saveMeal() {
   overlay.classList.add('show');
 
   try {
-    if(id) {
-      await updateMeal(id, data);
+    const mealNameForUpdate = document.getElementById('f-name').value.trim();
+    if(id && id !== 'undefined') {
+      await updateMeal(id, mealNameForUpdate, data);
       showToast('Meal updated ✓', 'success');
     } else {
       await insertMeal(data);
@@ -756,6 +769,7 @@ async function saveMeal() {
 // ── DELETE ──
 function openDelete(id, name) {
   deleteId = id;
+  deleteMealName = name;
   document.getElementById('delete-name-label').textContent = `"${name}" will be permanently removed.`;
   document.getElementById('delete-overlay').classList.add('open');
 }
@@ -766,7 +780,7 @@ function closeDelete() {
 async function confirmDelete() {
   if(!deleteId) return;
   try {
-    await deleteMeal(deleteId);
+    await deleteMeal(deleteId, deleteMealName);
     closeDelete();
     showToast('Meal deleted', 'success');
     const meals = await loadMeals();
