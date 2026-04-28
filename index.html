@@ -339,6 +339,7 @@ nav{
     </div>
     <div class="drawer-body">
       <input type="hidden" id="edit-id">
+      <input type="hidden" id="edit-original-name">
       <div class="field">
         <label>Meal Name *</label>
         <input type="text" id="f-name" placeholder="e.g. Chicken Tikka Masala" maxlength="100">
@@ -734,7 +735,8 @@ async function init() {
 
 // ── DRAWER ──
 function openDrawer(meal) {
-  document.getElementById('edit-id').value   = meal ? meal.id : '';
+  document.getElementById('edit-id').value            = meal ? (meal.id || '') : '';
+  document.getElementById('edit-original-name').value = meal ? (meal.meal_name || '') : '';
   document.getElementById('drawer-title').textContent = meal ? 'Edit Meal' : 'Add Meal';
   document.getElementById('f-name').value    = meal ? (meal.meal_name||'') : '';
   document.getElementById('f-main').value    = meal ? (meal.main_ingredient||'') : '';
@@ -758,7 +760,10 @@ async function saveMeal() {
   const name = document.getElementById('f-name').value.trim();
   if(!name) { showToast('Please enter a meal name', 'err'); document.getElementById('f-name').focus(); return; }
 
-  const id = document.getElementById('edit-id').value;
+  const id           = document.getElementById('edit-id').value;
+  const originalName = document.getElementById('edit-original-name').value;
+  const isEdit       = originalName !== '';  // if we have an original name, it's an edit
+
   const data = {
     meal_name:       name,
     main_ingredient: document.getElementById('f-main').value,
@@ -772,9 +777,8 @@ async function saveMeal() {
   overlay.classList.add('show');
 
   try {
-    const mealNameForUpdate = document.getElementById('f-name').value.trim();
-    if(id && id !== 'undefined') {
-      await updateMeal(id, mealNameForUpdate, data);
+    if(isEdit) {
+      await updateMeal(id, originalName, data);
       showToast('Meal updated ✓', 'success');
     } else {
       await insertMeal(data);
