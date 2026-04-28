@@ -246,7 +246,7 @@ nav{
     <div class="hero-inner">
       <div class="hero-eyebrow">✦ Your weekly favourites</div>
       <div class="hero-title">This Week's <em>Dinner Plan</em></div>
-      <div class="hero-sub">5 balanced meals · Mon–Fri · Randomised from your collection</div>
+      <div class="hero-sub">Up to 7 meals · Balanced by protein · Randomised from your collection</div>
     </div>
   </div>
 
@@ -255,9 +255,20 @@ nav{
       <strong id="pool-label">Loading…</strong>
       Randomly balanced by protein
     </div>
-    <button class="btn-regen" id="btn-regen" onclick="pickAndRender()" disabled>
-      <span class="si">↻</span> New Week
-    </button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <select id="meal-count-select" onchange="pickAndRender()" disabled style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Jost',sans-serif;font-size:0.85rem;color:var(--text);outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:28px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 10 6%22><path d=%22M0 0l5 6 5-6z%22 fill=%22%239A9488%22/></svg>');background-repeat:no-repeat;background-position:right 10px center;background-size:8px;">
+        <option value="1">1 meal</option>
+        <option value="2">2 meals</option>
+        <option value="3">3 meals</option>
+        <option value="4">4 meals</option>
+        <option value="5" selected>5 meals</option>
+        <option value="6">6 meals</option>
+        <option value="7">7 meals</option>
+      </select>
+      <button class="btn-regen" id="btn-regen" onclick="pickAndRender()" disabled>
+        <span class="si">↻</span> Regenerate
+      </button>
+    </div>
   </div>
 
   <!-- Plan loading -->
@@ -388,7 +399,7 @@ nav{
 const SUPA_URL = 'https://ctrbbvlzisgwcncyjoir.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0cmJidmx6aXNnd2NuY3lqb2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyOTg5NjgsImV4cCI6MjA5Mjg3NDk2OH0.FVxse4AswFPAwtPalLA-QWLtyE0JlBp4cxNIGU8uTGQ';
 const TABLE    = 'meals';
-const DAYS     = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const DAYS     = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
 const HEADERS = {
   'apikey': SUPA_KEY,
@@ -451,8 +462,8 @@ function shuffle(a) {
   return a;
 }
 
-function pickBalanced(meals) {
-  if(meals.length <= 5) return shuffle([...meals]);
+function pickBalanced(meals, count) {
+  if(meals.length <= count) return shuffle([...meals]);
   const groups = {};
   meals.forEach(m => {
     const k = (m.main_ingredient||'Other').trim();
@@ -463,15 +474,15 @@ function pickBalanced(meals) {
   const keys = shuffle(Object.keys(groups));
   const picked = [], used = new Set();
   let round = 0;
-  while(picked.length < 5 && round < keys.length * 20) {
+  while(picked.length < count && round < keys.length * 20) {
     const k = keys[round % keys.length];
     const pool = (groups[k]||[]).filter(m => !used.has(m.id));
     if(pool.length > 0){ picked.push(pool[0]); used.add(pool[0].id); }
     round++;
   }
-  // fill if not enough variety
-  if(picked.length < 5) {
-    shuffle(meals.filter(m => !used.has(m.id))).forEach(m => { if(picked.length < 5) picked.push(m); });
+  // fill remaining if not enough variety
+  if(picked.length < count) {
+    shuffle(meals.filter(m => !used.has(m.id))).forEach(m => { if(picked.length < count) picked.push(m); });
   }
   return shuffle(picked);
 }
@@ -561,7 +572,8 @@ function clearTicks() {
 // ── PICK & RENDER ──
 function pickAndRender() {
   if(!allMeals.length) return;
-  const sel = pickBalanced(allMeals);
+  const count = parseInt(document.getElementById('meal-count-select').value) || 5;
+  const sel = pickBalanced(allMeals, count);
   document.getElementById('plan-loading').style.display = 'none';
   document.getElementById('plan-error').style.display   = 'none';
   renderPlan(sel);
@@ -632,6 +644,7 @@ async function init() {
     document.getElementById('manage-count').textContent = `${count} meal${count!==1?'s':''} saved`;
     document.getElementById('manage-loading').style.display = 'none';
     document.getElementById('btn-regen').disabled = false;
+    document.getElementById('meal-count-select').disabled = false;
 
     if(count === 0) {
       document.getElementById('plan-loading').style.display = 'none';
